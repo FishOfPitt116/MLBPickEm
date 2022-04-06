@@ -1,0 +1,5 @@
+Flask==2.0.0
+Flask-SQLAlchemy==2.4.4
+Jinja2==3.1.1
+MLB-StatsAPI==1.4.1
+Werkzeug==2.1.0
