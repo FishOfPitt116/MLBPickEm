@@ -1,4 +1,4 @@
-#!/Users/fishofpitt116/Documents/Python/MLBPickEm/.mlbvenv/bin/python3
+#!/Users/fishofpitt116/Documents/Python/MLBPickEm/.mlbvenv/bin/python3.9
 # -*- coding: utf-8 -*-
 import re
 import sys
