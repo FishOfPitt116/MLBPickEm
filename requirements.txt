@@ -1,5 +1,9 @@
+click==7.1.2
 Flask==2.0.0
-Flask-SQLAlchemy==2.4.4
+Flask-SQLAlchemy==2.5.1
+itsdangerous==2.1.2
 Jinja2==3.1.1
+MarkupSafe==2.1.1
 MLB-StatsAPI==1.4.1
-Werkzeug==2.1.0
+SQLAlchemy==1.4.34
+Werkzeug==2.1.1
