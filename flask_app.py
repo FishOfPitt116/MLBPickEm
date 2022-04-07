@@ -1,10 +1,9 @@
-import os, json
+import os, json, statsapi, maya
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import statsapi
 
-from models import db, User
+from models import db, User, Team, Game, Pick
 
 app = Flask(__name__)
 
@@ -12,11 +11,11 @@ app.config.update(dict(
     DEBUG=True,
     SECRET_KEY='development key',
 
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(app.root_path, 'chat.db')
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(app.root_path, 'game.db')
 ))
 
 app.config.from_object(__name__)
-app.config.from_envvar('CHAT_SETTINGS', silent=True)
+app.config.from_envvar('GAME_SETTINGS', silent=True)
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 db.init_app(app)
@@ -24,7 +23,12 @@ db.init_app(app)
 @app.cli.command('initdb')
 def initdb_command():
     db.create_all()
-    print("Database Tables Initialized.")
+    for team in statsapi.get('teams', {'leagueIds' : 103})['teams']:
+        db.session.add(Team(team['name']))
+    for team in statsapi.get('teams', {'leagueIds' : 104})['teams']:
+        db.session.add(Team(team['name']))
+    db.session.commit()
+    print("Database Tables Initialized. MLB teams added.")
 
 @app.route('/')
 def home():
@@ -44,7 +48,7 @@ def login():
             flash('You were logged in')
             session['user_id'] = user.username
             session['logged_in'] = True
-            return redirect(url_for('open_rooms'))
+            return redirect(url_for('picks', date=datetime.today().date()))
     return render_template('login.html', error=error, today=datetime.today().date())
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -73,11 +77,44 @@ def logout():
     flash('You were logged out')
     return redirect(url_for('home'))
 
-@app.route('/picks')
+@app.route('/picks/<date>', methods=['GET'])
 def picks(date):
+    games = []
+    for game in statsapi.schedule(date):
+        if (curr := Game.query.filter_by(game_id=game['game_id'])).first() == None:
+            db.session.add(Game(game['game_id'], game['away_name'], game['away_probable_pitcher'], game['home_name'], game['home_probable_pitcher'], game['status'], game['away_score'], game['home_score'], game['current_inning']))
+            curr = Game.query.filter_by(game_id=game['game_id']).first()
+        games.append(curr)
     # if date == None:
-    #     return redirect(url_for('picks', date=datetime.today().date()))
-    pass
+    #     return redirect(url_for('picks', date=datetime.today().date().date()))
+    return render_template('picks.html', date=date, today=datetime.today().date(), games=games)
+
+@app.route('/nextday/<date>')
+def next_day(date):
+    date = datetime.strptime(date, '%Y-%m-%d').date()
+    try:
+        return redirect(url_for('picks', date=date.replace(day=date.day+1)))
+    except ValueError:
+        try:
+            return redirect(url_for('picks', date=date.replace(day=1, month=date.month+1)))
+        except ValueError:
+            return redirect(url_for('picks', date=date))
+
+@app.route('/prevday/<date>')
+def prev_day(date):
+    date = datetime.strptime(date, '%Y-%m-%d').date()
+    try:
+        return redirect(url_for('picks', date=date.replace(day=date.day-1)))
+    except ValueError:
+        new_month = date.month-1
+        if new_month == 2:
+            return redirect(url_for('picks', date=date.replace(day=28, month=new_month)))
+        if new_month in [9, 4, 6, 11]:
+            return redirect(url_for('picks', date=date.replace(day=30, month=new_month)))
+        try:
+            return redirect(url_for('picks', date=date.replace(day=31, month=new_month)))
+        except ValueError:
+            return redirect(url_for('picks', date=date))
 
 @app.route('/leaderboards')
 def leaderboards():

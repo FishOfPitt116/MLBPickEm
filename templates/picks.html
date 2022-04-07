@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block body %}
+<h3>{{ date }}</h3>
+{% for game in games %}
+    {{ game.away_id }} @ {{ game.home_id }}<br>
+{% endfor %}
+<a href="{{ url_for('prev_day', date=date) }}">prev day</a>
+<a href="{{ url_for('next_day', date=date) }}">next day</a>
+<a href="{{ url_for('picks', date=today) }}">back to today</a>
+{% endblock %}
