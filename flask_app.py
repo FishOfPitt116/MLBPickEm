@@ -1,4 +1,4 @@
-import os, json, statsapi, maya
+import os, json, statsapi
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
